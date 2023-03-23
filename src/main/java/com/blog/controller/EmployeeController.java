@@ -30,12 +30,20 @@ public class EmployeeController {
     //发送post请求
     @PostMapping("/login")
     public Result<Employee> login(HttpServletRequest request, @RequestBody Employee employee) {
+        //接受输入，然后立刻转发
+
+
         String password = employee.getPassword();
         password = DigestUtils.md5DigestAsHex(password.getBytes());
+
         //这部分就是MP
+        //查询构造器
         LambdaQueryWrapper<Employee> lqw = new LambdaQueryWrapper<>();
         lqw.eq(Employee::getUsername, employee.getUsername());
+
+        //db返回的结果
         Employee emp = employeeService.getOne(lqw);
+
         if (emp == null) {
             return Result.error("登陆失败");
         }
@@ -45,8 +53,11 @@ public class EmployeeController {
         if (emp.getStatus() == 0) {
             return Result.error("该用户已被禁用");
         }
-        //存个Session，只存个id就行了
+
+        //后台存个Session，只存个id就行了，保存登录状态。//
         request.getSession().setAttribute("employee", emp.getId());
+
+        //返回用户的基本信息
         return Result.success(emp);
     }
 
@@ -73,10 +84,13 @@ public class EmployeeController {
         log.info("新增的员工信息：{}", employee.toString());
         //设置默认密码为123456，并采用MD5加密
         employee.setPassword(DigestUtils.md5DigestAsHex("123456".getBytes()));
+        //MP
         //存入数据库
         employeeService.save(employee);
         return Result.success("添加员工成功");
     }
+
+
 
     @GetMapping("/page")
     public Result<Page> page(int page, int pageSize, String name) {
@@ -93,6 +107,7 @@ public class EmployeeController {
         employeeService.page(pageInfo, wrapper);
         return Result.success(pageInfo);
     }
+
 
     /**
      * 通用的修改员工信息

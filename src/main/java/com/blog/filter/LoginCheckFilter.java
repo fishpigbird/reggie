@@ -5,6 +5,7 @@ import com.blog.common.BaseContext;
 import com.blog.common.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.*;
 import javax.servlet.annotation.WebFilter;
@@ -12,11 +13,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+
+//servlet 3.0 的 过滤器
+@RestController
 @WebFilter(filterName = "loginCheckFilter", urlPatterns = "/*")
 @Slf4j
 public class LoginCheckFilter implements Filter {
 
-    //路径匹配
+    //路径匹配，match匹配方法
     public static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
     @Override
@@ -42,7 +46,7 @@ public class LoginCheckFilter implements Filter {
                 "/user/sendMsg"
         };
 
-        //2.判断本次请求是否需要处理
+        //2.判断本次请求是否需要处理 //check调用match方法来筛选
         boolean check = check(urls, requestURI);
 
         //3.如果不需要处理，则直接放行
@@ -55,20 +59,26 @@ public class LoginCheckFilter implements Filter {
         //4.判断登录状态，如果已登录，则直接放行
         if (request.getSession().getAttribute("employee") != null) {
             log.info("后端用户已登录，id为{}", request.getSession().getAttribute("employee"));
+
             //在这里获取一下线程id
             long id = Thread.currentThread().getId();
             log.info("doFilter的线程id为：{}", id);
             //根据session来获取之前我们存的id值
+
             Long empId = (Long) request.getSession().getAttribute("employee");
-            //使用BaseContext封装id
+
+            //使用BaseContext封装id ThreadLoacl
             BaseContext.setCurrentId(empId);
+
+
             if (request.getSession().getAttribute("user") != null)
                 return;
             filterChain.doFilter(request, response);
             return;
         }
 
-        //判断前端用户是否登录
+
+        //判断用户是否登录
         if(request.getSession().getAttribute("user") != null){
             log.info("前端用户已登录，用户id为：{}",request.getSession().getAttribute("user"));
             Long userId = (Long)request.getSession().getAttribute("user");
@@ -80,8 +90,14 @@ public class LoginCheckFilter implements Filter {
         //5.如果未登录则返回未登录结果,通过输出流方式向客户端页面响应数据
         log.info("后台用户未登录");
         log.info("后台用户id：{}", request.getSession().getAttribute("employee"));
+
+
         response.getWriter().write(JSON.toJSONString(Result.error("NOTLOGIN")));
+        //result("NOTLOGIN");
     }
+//    private Result result(String msg){
+//        return Result.error(msg);
+//    }
 
     public boolean check(String[] urls, String requestURI) {
         for (String url : urls) {
