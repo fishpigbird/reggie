@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.blog.common.Result;
 import com.blog.entity.Employee;
 import com.blog.service.EmployeeService;
+import com.blog.service.impl.EmployeeServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.DigestUtils;
@@ -17,8 +18,16 @@ import javax.servlet.http.HttpServletRequest;
 @RequestMapping("/employee")
 public class EmployeeController {
 
-    @Autowired
-    private EmployeeService employeeService;
+    @Autowired//自动装配
+
+    private EmployeeServiceImpl employeeService;//这里是接口，不是实现类
+
+    //private AccountServiceImpl accountService;
+    //不行，user的密码和employee的密码虽然都是账户密码，但是他们确实不同的table。所以不能用同一个service。
+    //也就是说，在mapper中获取密码时，需要用不同的mapper，也就是不同的service。
+    //所以user和employee不能用同一个获取密码的方法。
+    //那么，获取密码的方法就得分别由他们自身来实现。
+
 
     /**
      * 登入功能
@@ -30,36 +39,25 @@ public class EmployeeController {
     //发送post请求
     @PostMapping("/login")
     public Result<Employee> login(HttpServletRequest request, @RequestBody Employee employee) {
-        //接受输入，然后立刻转发
+        log.info("登陆的员工信息：{}", employee.toString());
 
-
-        String password = employee.getPassword();
-        password = DigestUtils.md5DigestAsHex(password.getBytes());
-
-        //这部分就是MP
-        //查询构造器
-        LambdaQueryWrapper<Employee> lqw = new LambdaQueryWrapper<>();
-        lqw.eq(Employee::getUsername, employee.getUsername());
-
-        //db返回的结果
-        Employee emp = employeeService.getOne(lqw);
-
-        if (emp == null) {
-            return Result.error("登陆失败");
-        }
-        if (!emp.getPassword().equals(password)) {
-            return Result.error("登录失败");
-        }
-        if (emp.getStatus() == 0) {
-            return Result.error("该用户已被禁用");
-        }
-
-        //后台存个Session，只存个id就行了，保存登录状态。//
-        request.getSession().setAttribute("employee", emp.getId());
-
-        //返回用户的基本信息
-        return Result.success(emp);
+        //加密密码，放到一个String中.
+        String password = DigestUtils.md5DigestAsHex(employee.getPassword().getBytes());
+        //把密码放到employee中
+        employee.setPassword(password);
+        //调用service的login方法
+        return employeeService.login(request,employee);
+        //idea如何查看当前代码的历史版本//   https://blog.csdn.net/qq_41855420/article/details/107201100
     }
+
+    @GetMapping("/test1")
+    //getmappin
+    public Result<String> test1(HttpServletRequest request) {
+        log.info("test1，测试impl方法是否存在.");
+        employeeService.test1();
+        return Result.success("退出成功");
+    }
+
 
     /**
      * 登出功能
@@ -69,6 +67,7 @@ public class EmployeeController {
      */
     @PostMapping("/logout")
     public Result<String> logout(HttpServletRequest request) {
+        log.info("登出");
         request.getSession().removeAttribute("employee");
         return Result.success("退出成功");
     }
