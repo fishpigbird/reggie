@@ -34,6 +34,13 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper, Employee> i
     public Result<Employee> login(HttpServletRequest request,Employee voEmployee) {
         this.voEmployee = voEmployee;
 
+
+        String password = DigestUtils.md5DigestAsHex(voEmployee.getPassword().getBytes());
+        //把密码放到employee中
+        voEmployee.setPassword(password);
+        //调用service的login方法
+
+
         log.info(voEmployee.getUsername());//java.lang.NullPointerException: null
         System.out.println(voEmployee.getUsername());
 
